@@ -1,0 +1,303 @@
+{{ 'comment-styles.css' | stylesheet_tag }}
+{% render 'styles' %}
+
+<div class="wrap-app-container" style="width: 100%;max-width: 600px;display: grid;grid-template-columns: 1fr;gap:2rem;">
+    <div>
+        <h2>Discussion {{ order.id }}</h2>
+        <div class="container--review">
+            <div class="Polaris-Box--user">
+                <div class="Polaris-Box--img">
+                    {% for i in order.line_items %}
+                        {{ i.image | image_url: width: 200 | image_tag }}
+                    {% endfor %}
+                </div>
+                <div>
+                    <h6 class="Polaris-Text Polaris-Text--headingMd">Customer@mail</h6>
+                    <p>
+                        Use for detail pages, which should have pagination and breadcrumbs, 
+                        and also often have several actions.
+                </p>
+                </div>
+            </div>
+
+            <div class="">
+                <div class="Polaris-Labelled__LabelWrapper">
+                    <label id="" for="" class="Polaris-Label__Text">
+                        Send Message to Seller
+                    </label>
+                </div>
+                <div class="Polaris-Connected">
+                    <textarea class="input_textarea" id="inputTextArea" class="Polaris-TextField__Input"></textarea>
+                </div>
+            </div>
+
+            <button id="savedata" class="Polaris-Button" type="button">Reply</button>
+        </div>
+    </div>
+
+    <button onclick="createMetaobject()">Create Metaobject</button>
+
+    <button id="create-metaobject-button">Create Metaobject 1</button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+      const metaobjectDefinitionId = '1234567890';
+      const metaobjectHandle = 'my-metaobject';
+      const metaobjectFieldValue = 'Example value';
+
+      const shopDomain = 'oki-playground.myshopify.com'; 
+      const shopAccessToken = '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';
+
+      const mutation = `
+      mutation metaobjectCreate($metaobjectDefinitionId: ID!, $metaobjectHandle: String!, $metaobjectFieldValue: String!) {
+        metaobjectCreate(
+          input: {
+            metaobjectDefinitionId: $metaobjectDefinitionId,
+            handle: $metaobjectHandle,
+            fields: [{
+              name: "YOUR_METAOOBJECT_FIELD_NAME", 
+              value: $metaobjectFieldValue
+            }]
+          }
+        ) {
+          metaobject {
+            id
+            handle
+            fields {
+              name
+              value
+            }
+          }
+        }
+      }
+      `;
+
+      const variables = {
+        metaobjectDefinitionId,
+        metaobjectHandle,
+        metaobjectFieldValue
+      };
+
+      const options = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': shopAccessToken
+        },
+        body: JSON.stringify({
+          query: mutation,
+          variables
+        })
+      };
+
+      fetch(`https://${shopDomain}/admin/api/2023-10/graphql.json`, options)
+        .then(response => response.json())
+        .then(data => {
+          console.log('Metaobject created successfully:', data.data.metaobjectCreate.metaobject);
+        })
+        .catch(error => {
+          console.error('Error creating metaobject:', error);
+        });
+ 
+    
+        {% comment %} const shopifyClient = createClient({
+          domain: 'oki-playground.myshopify.com',
+          accessToken: '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',
+        });
+      
+        const mutation = gql`
+          mutation metaobjectCreate($metaobject: MetaobjectInput!) {
+            metaobjectCreate(metaobject: $metaobject) {
+              metaobject {
+                id
+                type
+                fields {
+                  key
+                  value
+                }
+              }
+            }
+          }
+        `;
+      
+        const variables = {
+          metaobject: {
+            type: 'product_variant',
+            fields: [
+              {
+                key: 'color',
+                value: 'red',
+              },
+              {
+                key: 'size',
+                value: 'medium',
+              },
+            ],
+          },
+        };
+      
+        shopifyClient.mutate({ mutation, variables }).then(({ data }) => {
+          console.log('Metaobject created successfully:', data.metaobjectCreate.metaobject);
+        }).catch(error => {
+          console.error('Error creating metaobject:', error);
+        }); {% endcomment %}
+      
+
+    {% comment %} const createMetaobjectButton = document.getElementById('create-metaobject-button');
+
+  createMetaobjectButton.addEventListener('click', () => {
+    const accessToken = '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';
+    const metaobjectName = 'product_metaobject';
+    const metaobjectType = 'product';
+    const metafieldDefinitions = [
+      {
+        namespace: 'my_namespace',
+        key: 'my_key',
+        value: 'my_value',
+        value_type: 'string'
+      },
+      {
+        namespace: 'another_namespace',
+        key: 'another_key',
+        value: 123,
+        value_type: 'integer'
+      }
+    ];
+
+    createMetaobject(accessToken, metaobjectName, metaobjectType, metafieldDefinitions);
+  });
+
+  function createMetaobject(accessToken, metaobjectName, metaobjectType, metafieldDefinitions) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json`);
+    {% comment %} graphql.json {% endcomment %}
+    xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+
+    const dataPayload = {
+      metaobject: {
+        name: metaobjectName,
+        metaobject_type: metaobjectType,
+        metafields: metafieldDefinitions
+      }
+    };
+
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 201)) {
+        const responseData = JSON.parse(xhr.responseText);
+        console.log('Metaobject created successfully:', responseData);
+      } else if (xhr.readyState === 4 && xhr.status !== 200 && xhr.status !== 201) {
+        console.error('Failed to create metaobject:', xhr.status, xhr.responseText);
+      }
+    };
+
+    xhr.send(JSON.stringify(dataPayload));
+  } {% endcomment %}
+
+    {% comment %} function createMetaobject(accessToken, metaobjectName, metaobjectType, metafieldDefinitions) {
+        const accessToken = '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';
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `https://oki-playground.myshopify.com/admin/api/2022-07/metaobjects.json`);
+        xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+      
+        const dataPayload = {
+            metaobject: {
+                name: 'product_metaobject',
+                metaobject_type: 'product', 
+                metafields: [
+                  {
+                    namespace: 'my_namespace', 
+                    key: 'my_key', 
+                    value: 'my_value', 
+                    value_type: 'string' 
+                  },
+                  {
+                    namespace: 'another_namespace',
+                    key: 'another_key', 
+                    value: 123, 
+                    value_type: 'integer'
+                  }
+                ]
+              }
+        };
+      
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 201)) {
+            const responseData = JSON.parse(xhr.responseText);
+            console.log('Metaobject created successfully:', responseData);
+          } else if (xhr.readyState === 4 && xhr.status !== 200 && xhr.status !== 201) {
+            console.error('Failed to create metaobject:', xhr.status, xhr.responseText);
+          }
+        };
+      
+        xhr.send(JSON.stringify(dataPayload));
+      }
+      
+      createMetaobject(); {% endcomment %}
+
+    console.log("mail-extension");
+    const firebaseConfig = {
+        databaseURL: 'https://rdbex2-default-rtdb.asia-southeast1.firebasedatabase.app'
+    };
+
+    async function getFirebasedb() {
+        const response = await fetch(firebaseConfig.databaseURL + '/messages/.json');
+        const res = await response.json();
+        console.log(res);
+      }      
+
+    getFirebasedb();
+
+    const postDataButton = document.querySelector("#savedata");
+    
+    postDataButton.addEventListener('click', function(){
+        let orderNumber = "{{ order.order_number }}";
+        var customerMail = "{{ customer.email }}";
+        var inputTextArea = document.getElementById('inputTextArea').value;
+
+        const postData = {
+            'customerMail': customerMail,
+            'orderNumberValue': orderNumber,
+            'inputTextArea': inputTextArea
+        };
+
+        if(inputTextArea != null){
+            fetch(firebaseConfig.databaseURL + `/messages/${orderNumber}.json`, {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(postData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Data posted successfully');
+                console.log(response.json());
+                console.log(postData);
+            })
+            .catch(error => {
+            console.error('Error posting data:', error);
+            });
+        }else{
+            console.log('data incomplete');
+        }
+    });
+});
+</script>
+    
+{% schema %}
+    {
+    "name": "comments",
+    "target": "section",
+    "settings": [
+        { "type": "product", "id": "product", "label": "product", "autofill": true },
+        { "type": "color", "id": "colour", "label": "Star Colour", "default": "#ff0000" }
+    ]
+    }
+{% endschema %}
+    
+    
+
+

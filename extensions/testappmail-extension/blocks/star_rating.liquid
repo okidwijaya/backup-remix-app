@@ -1,0 +1,70 @@
+{% assign avg_rating = block.settings.product.metafields.demo.avg_rating.value | round %}
+
+<span style="color:{{ block.settings.colour }}">
+  {% render 'stars', rating: avg_rating %}
+</span>
+{% if avg_rating >= 4 %}
+  <br>
+  <img src="{{ "thumbs-up.png" | asset_img_url: '15x' }}" height="15" width="15" loading="lazy">
+  {{ 'ratings.home.recommendationText' | t }}
+{% endif %}
+<h1>Add Tag to MailChimp Member</h1>
+<form id="tagForm">
+  <label for="email">Email:</label><br>
+  <input type="email" id="email" name="email" required><br><br>
+  <label for="tag">Tag:</label><br>
+  <input type="text" id="tag" name="tag" required><br><br>
+  <button type="submit">Add Tag</button>
+</form>
+
+
+<script src="https://cdn.jsdelivr.net/npm/md5-js-tools@1.0.2/lib/md5.min.js" defer></script>
+  <script>
+
+    document.getElementById("tagForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+      const email = document.getElementById("email").value;
+      const tag = document.getElementById("tag").value;
+
+      const apiKey = '611a17640ff8eb94079458cf90d37782-us14';
+      const listId = 'af23a83d7f';
+      {% comment %} const tag = 'ex-tag'; {% endcomment %}
+      window.onload = function() {
+      var hashMail = md5.generate(email).toLowerCase();
+      const url = `https://us14.api.mailchimp.com/3.0/lists/${listId}/members/${hashMail}/tags`;
+
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `apikey ${apiKey}`,
+        },
+        body: JSON.stringify({ tags: [{ name: tag, status: 'active' }] })
+      })
+      {% comment %} Basic ${Buffer.from(`anystring:${apiKeyMailchimp}`).toString('base64')} {% endcomment %}
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        console.log("Tag added successfully!");
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        console.log("Failed to add tag. Please check the console for error details.");
+      });
+    }
+    });
+    
+  </script>
+
+{% schema %}
+{
+  "name": "Star Rating",
+  "target": "section",
+  "javascript": "app.js",
+  "settings": [
+    { "type": "product", "id": "product", "label": "product", "autofill": true },
+    { "type": "color", "id": "colour", "label": "Star Colour", "default": "#ff0000" }
+  ]
+}
+{% endschema %}
+

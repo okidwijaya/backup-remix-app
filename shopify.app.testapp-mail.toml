@@ -1,0 +1,28 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "testapp"
+client_id = "6584db16bb839cc8164c14c9589acb94"
+application_url = "https://throws-its-harbor-monte.trycloudflare.com"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products"
+
+[auth]
+redirect_urls = [
+  "https://throws-its-harbor-monte.trycloudflare.com/auth/callback",
+  "https://throws-its-harbor-monte.trycloudflare.com/auth/shopify/callback",
+  "https://throws-its-harbor-monte.trycloudflare.com/api/auth/callback",
+  "https://throws-its-harbor-monte.trycloudflare.com/.shopify/graphiql/auth/callback"
+]
+
+[webhooks]
+api_version = "2023-10"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "oki-playground.myshopify.com"
