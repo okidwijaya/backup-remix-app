@@ -2,7 +2,7 @@
 
 name = "testapp"
 client_id = "6584db16bb839cc8164c14c9589acb94"
-application_url = "https://throws-its-harbor-monte.trycloudflare.com"
+application_url = "https://lying-crimes-gpl-forecast.trycloudflare.com"
 embedded = true
 
 [access_scopes]
@@ -11,10 +11,10 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://throws-its-harbor-monte.trycloudflare.com/auth/callback",
-  "https://throws-its-harbor-monte.trycloudflare.com/auth/shopify/callback",
-  "https://throws-its-harbor-monte.trycloudflare.com/api/auth/callback",
-  "https://throws-its-harbor-monte.trycloudflare.com/.shopify/graphiql/auth/callback"
+  "https://lying-crimes-gpl-forecast.trycloudflare.com/auth/callback",
+  "https://lying-crimes-gpl-forecast.trycloudflare.com/auth/shopify/callback",
+  "https://lying-crimes-gpl-forecast.trycloudflare.com/api/auth/callback",
+  "https://lying-crimes-gpl-forecast.trycloudflare.com/.shopify/graphiql/auth/callback"
 ]
 
 [webhooks]

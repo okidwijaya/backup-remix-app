@@ -1,0 +1,953 @@
+import { useEffect } from "react";
+import { useSession } from "~/shopify.server";
+import { json } from "@remix-run/node";
+import { useActionData, useNavigation, useSubmit } from "@remix-run/react";
+import {
+  Page,
+  Layout,
+  Text,
+  Card,
+  Button,
+  BlockStack,
+  Box,
+  List,
+  Link,
+  InlineStack,
+} from "@shopify/polaris";
+import { authenticate } from "../shopify.server";
+import { LoaderFunction, ActionFunction } from "@remix-run/node";
+import axios from 'axios';
+
+export const loader = async ({ request }) => {
+  await authenticate.admin(request);
+
+  return null;
+};
+
+export const action = async ({ request }) => {
+  const { admin } = await authenticate.admin(request);
+  const color = ["Red", "Orange", "Yellow", "Green"][
+    Math.floor(Math.random() * 4)
+  ];
+  const response = await admin.graphql(
+    `#graphql
+      mutation populateProduct($input: ProductInput!) {
+        productCreate(input: $input) {
+          product {
+            id
+            title
+            handle
+            status
+            variants(first: 10) {
+              edges {
+                node {
+                  id
+                  price
+                  barcode
+                  createdAt
+                }
+              }
+            }
+          }
+        }
+      }`,
+    {
+      variables: {
+        input: {
+          title: `${color} Snowboard`,
+          variants: [{ price: Math.random() * 100 }],
+        },
+      },
+    }
+  );
+  const responseJson = await response.json();
+
+  return json({
+    product: responseJson.data.productCreate.product,
+  });
+};
+
+export default function Index() {
+  const nav = useNavigation();
+  const actionData = useActionData;
+  const submit = useSubmit();
+  const isLoading =
+    ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
+  const productId = actionData?.product?.id.replace(
+    "gid://shopify/Product/",
+    ""
+  );
+
+  useEffect(() => {
+    if (productId) {
+      shopify.toast.show("Product created");
+    }
+  }, [productId]);
+  const generateProduct = () => submit({}, { replace: true, method: "POST" });
+
+  const shopifyStoreUrl =
+    "https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json";
+  const accessToken = "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";
+
+  const createMetaobjectDefinitionSubmit = () => {
+    var myHeaders = new Headers();
+    myHeaders.append(
+      "X-Shopify-Access-Token",
+      "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"
+    );
+    myHeaders.append("Content-Type", "application/json");
+    myHeaders.append("Cookie", "request_method=POST");
+    myHeaders.append('Accept', 'application/json');
+    myHeaders.append('Access-Control-Allow-Credentials', 'true');
+    myHeaders.append('Access-Control-Allow-Origin', '*');
+
+    var graphql = JSON.stringify({
+    query: `mutation CreateMetaobjectDefinition($definition: MetaobjectDefinitionCreateInput!) {
+      metaobjectDefinitionCreate(definition: $definition) {
+        metaobjectDefinition {
+          name
+          type
+          fieldDefinitions {
+                name
+                key
+              }
+            }
+            userErrors {
+                field
+                message
+                code
+              }
+            }
+          }
+    }`,
+    variables: {
+          definition: {
+            name: "metaapp",
+            type: "metapp",
+            fieldDefinitions: [
+              {
+                name: "textapp",
+                key: "textapp",
+                type: "single_line_text_field"
+              },
+            ],
+          },
+        },
+    });
+    var requestOptions = {
+      method: "POST",
+      headers: myHeaders,
+      body: graphql,
+      redirect: "follow",
+      mode: "no-cors",
+      credentials: "include",
+    };
+
+    fetch(
+      "https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json",
+      requestOptions
+    )
+      .then((response) => response.text())
+      .then((result) => console.log(result))
+      .catch((error) => console.log("error", error));
+  };
+
+  // const createMetaobjectDefinitionSubmit = async () => {
+    // const axios = require('axios');
+    // let data = JSON.stringify({
+    //   query: `mutation CreateMetaobjectDefinition($definition: MetaobjectDefinitionCreateInput!) {
+    //   metaobjectDefinitionCreate(definition: $definition) {
+    //     metaobjectDefinition {
+    //       name
+    //       type
+    //       fieldDefinitions {
+    //             name
+    //             key
+    //           }
+    //         }
+    //         userErrors {
+    //             field
+    //             message
+    //             code
+    //           }
+    //         }
+    //       }
+    // }`,
+    // variables: {
+    //       definition: {
+    //         name: "metaapp",
+    //         type: "metapp",
+    //         fieldDefinitions: [
+    //           {
+    //             name: "textapp",
+    //             key: "textapp",
+    //             type: "single_line_text_field"
+    //           },
+    //         ],
+    //       },
+    //     },
+    // });
+    
+    // let config = {
+    //   method: 'post',
+    //   maxBodyLength: Infinity,
+    //   url: 'https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json',
+    //   headers: { 
+    //     'X-Shopify-Access-Token': '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', 
+    //     'Content-Type': 'application/json',
+    //     'Access-Control-Allow-Origin': '*',
+    //   },
+    //   data : data
+    // };
+    
+    // axios.request(config)
+    // .then((response) => {
+    //   console.log(JSON.stringify(response.data));
+    // })
+    // .catch((error) => {
+    //   console.log(error);
+    // });
+    
+//   const headers = {
+//     "X-Shopify-Access-Token": "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",
+//     "Content-Type": "application/json",
+//     "Cookie": "request_method=POST",
+//     "Accept": "application/json",
+//     'Access-Control-Allow-Origin': '*',
+//   };
+
+//   const graphql = {
+//     query: `
+//       mutation CreateMetaobjectDefinition($definition: MetaobjectDefinitionCreateInput!) {
+//         metaobjectDefinitionCreate(definition: $definition) {
+//           metaobjectDefinition {
+//             name
+//             type
+//             fieldDefinitions {
+//               name
+//               key
+//             }
+//           }
+//           userErrors {
+//             field
+//             message
+//             code
+//           }
+//         }
+//       }
+//     `,
+//     variables: {
+//       definition: {
+//         name: "metaapp",
+//         type: "metapp",
+//         fieldDefinitions: [
+//           {
+//             name: "textapp",
+//             key: "textapp",
+//             type: "single_line_text_field"
+//           },
+//         ],
+//       },
+//     },
+//   };
+
+//   try {
+//     const response = await axios.post(
+//       "https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json",
+//       graphql,
+//       { headers }
+//     );
+
+//     console.log(response.data);
+//   } catch (error) {
+//     console.error("Error:", error.message);
+
+//     if (error.response) {
+//       console.error("Response data:", error.response.data);
+//       console.error("Response status:", error.response.status);
+//     } else if (error.request) {
+//       console.error("No response received:", error.request);
+//     } else {
+//       console.error("Error setting up the request:", error.message);
+//     }
+//   }
+// };
+
+  // const handleButtonClickCreateMeta = () => {
+  //   var myHeaders = new Headers();
+  //   myHeaders.append(
+  //     "X-Shopify-Access-Token",
+  //     "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"
+  //   );
+  //   myHeaders.append("Content-Type", "application/json");
+  //   myHeaders.append("Cookie", "request_method=POST");
+
+  //   var graphql = JSON.stringify({
+  //     query: `
+  //     mutation {
+  //       metaobjectCreate(metaobject: {
+  //         type: "color-swatchfetch",
+  //         fields: [
+  //           {
+  //             key: "hexfetch",
+  //             value: "#FFFFFF"
+  //           }
+  //         ]
+  //       }) {
+  //         metaobject {
+  //           id
+  //           type
+  //           fields {
+  //             key
+  //             value
+  //           }
+  //         }
+  //         userErrors {
+  //           field
+  //           message
+  //           code
+  //         }
+  //       }
+  //     }`,
+  //     variables: {},
+  //   });
+  //   var requestOptions = {
+  //     method: "POST",
+  //     headers: myHeaders,
+  //     body: graphql,
+  //     redirect: "follow",
+  //   };
+
+  //   fetch(
+  //     "https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json",
+  //     requestOptions
+  //   )
+  //     .then((response) => response.text())
+  //     .then((result) => console.log(result))
+  //     .catch((error) => console.log("error", error));
+  // };
+  const handleButtonClickCreateMeta = async () => {
+  const headers = {
+    "X-Shopify-Access-Token": "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",
+    "Content-Type": "application/json",
+    "Cookie": "request_method=POST",
+  };
+
+  const graphql = {
+    query: `
+      mutation {
+        metaobjectCreate(metaobject: {
+          type: "student-name",
+                    fields: [
+                        {
+                        key: "student",
+                        value: "#000000"
+                        }
+                    ]
+        }) {
+          metaobject {
+            id
+            type
+            fields {
+              key
+              value
+            }
+          }
+          userErrors {
+            field
+            message
+            code
+          }
+        }
+      }`,
+    variables: {},
+  };
+
+  try {
+    const response = await axios.post(
+      "https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json",
+      graphql,
+      { headers }
+    );
+
+    console.log(response.data);
+  } catch (error) {
+    console.error("Error:", error.message);
+  }
+};
+
+  const handleButtonClick = async () => {
+    const myHeaders = new Headers();
+    myHeaders.append(
+      "X-Shopify-Access-Token",
+      "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"
+    );
+    myHeaders.append("Content-Type", "application/json");
+    myHeaders.append("Cookie", "request_method=POST");
+    myHeaders.append("Accept", "application/json");
+    myHeaders.append("Access-Control-Allow-Credentials", "true");
+
+    const graphql = JSON.stringify({
+      query: `
+        mutation CreateMetaobjectDefinition($definition: MetaobjectDefinitionCreateInput!) {
+          metaobjectDefinitionCreate(definition: $definition) {
+            metaobjectDefinition {
+              name
+              type
+              fieldDefinitions {
+                name
+                key
+              }
+            }
+            userErrors {
+              field
+              message
+              code
+            }
+          }
+        }
+      `,
+      variables: {
+        definition: {
+          name: "Color swatchFetch3",
+          type: "color-swatchfetch3",
+          fieldDefinitions: [
+            {
+              name: "HexFetch3",
+              key: "hexfetch3",
+              type: "single_line_text_field",
+              validations: [
+                { name: "regex", value: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$" },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const requestOptions = {
+      method: "POST",
+      headers: myHeaders,
+      body: graphql,
+      redirect: "follow",
+      mode: "no-cors",
+      credentials: "include",
+    };
+
+    try {
+      const response = await fetch(
+        "https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json",
+        requestOptions
+      );
+      const result = await response.text();
+      console.log(result);
+    } catch (error) {
+      console.error("error", error);
+    }
+  };
+
+function submitForm(event) {
+  event.preventDefault();
+
+  var myHeaders = new Headers();
+  myHeaders.append(
+    "X-Shopify-Access-Token",
+    "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"
+  );
+  myHeaders.append("Content-Type", "application/json");
+  myHeaders.append("Cookie", "request_method=POST");
+  myHeaders.append("Accept", "application/json");
+  myHeaders.append("Access-Control-Allow-Credentials", "true");
+  myHeaders.append("Cookie", "request_method=POST");
+
+  var formData = new FormData(event.target);
+  var username = formData.get("username");
+
+  var graphql = JSON.stringify({
+    query: `
+    mutation {
+      metaobjectCreate(metaobject: {
+        type: "color-swatchfetch",
+        fields: [
+          {
+            key: "hexfetch",
+            value: "#FFFFFF"
+          }
+        ]
+      }) {
+        metaobject {
+          id
+          type
+          fields {
+            key
+            value
+          }
+        }
+        userErrors {
+          field
+          message
+          code
+        }
+      }
+    }`,
+    variables: {},
+  });
+
+  graphql = graphql.replace('variables: {}', `variables: { username: "${username}" }`);
+
+  var requestOptions = {
+    method: "POST",
+    headers: myHeaders,
+    body: graphql,
+    redirect: "follow",
+    mode: "no-cors",
+    credentials: "include",
+  };
+
+  fetch(
+    "https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json",
+    requestOptions
+  )
+    .then((response) => response.text())
+    .then((result) => console.log(result))
+    .catch((error) => console.log("error", error));
+}
+
+  return (
+    <Page>
+      <form 
+      data-save-bar
+      onSubmit={(event) => {
+        submitForm(event);
+        const formData = new FormData(event.target);
+        console.log(formData);
+      }}>
+        <label>
+          Name:
+          <input name="username" />
+        </label>
+      </form>
+      {/* <form
+        data-save-bar
+        onSubmit="console.log('submit', new FormData(event.target)); event.preventDefault();"
+      >
+        <label>
+          Name:
+          <input name="username" />
+        </label>
+        <Button type="submit" onClick={createMetaobjectDefinitionSubmit}>Create Metaobject</Button> 
+      </form> */}
+      {/* <Button loading={isLoading} onClick={handleButtonClick}>
+        Create Metaobject Definition
+      </Button> */}
+      <Button loading={isLoading} onClick={handleButtonClickCreateMeta}>
+        Create Metaobject entry
+      </Button>
+      <Button loading={isLoading} onClick={createMetaobjectDefinitionSubmit}>
+        Create Metaobject
+      </Button>
+      <ui-title-bar title="Remix app template">
+        <button variant="primary" onClick={generateProduct}>
+          Generate a product
+        </button>
+      </ui-title-bar>
+      <BlockStack gap="500">
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="500">
+                <BlockStack gap="200">
+                  <Text as="h2" variant="headingMd">
+                    Congrats on creating a new Shopify app 🎉
+                  </Text>
+                  <Text variant="bodyMd" as="p">
+                    This embedded app template uses{" "}
+                    <Link
+                      url="https://shopify.dev/docs/apps/tools/app-bridge"
+                      target="_blank"
+                      removeUnderline
+                    >
+                      App Bridge
+                    </Link>{" "}
+                    interface examples like an{" "}
+                    <Link url="/app/additional" removeUnderline>
+                      additional page in the app nav
+                    </Link>
+                    , as well as an{" "}
+                    <Link
+                      url="https://shopify.dev/docs/api/admin-graphql"
+                      target="_blank"
+                      removeUnderline
+                    >
+                      Admin GraphQL
+                    </Link>{" "}
+                    mutation demo, to provide a starting point for app
+                    development.
+                  </Text>
+                </BlockStack>
+                <BlockStack gap="200">
+                  <Text as="h3" variant="headingMd">
+                    Get started with products
+                  </Text>
+                  <Text as="p" variant="bodyMd">
+                    Generate a product with GraphQL and get the JSON output for
+                    that product. Learn more about the{" "}
+                    <Link
+                      url="https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate"
+                      target="_blank"
+                      removeUnderline
+                    >
+                      productCreate
+                    </Link>{" "}
+                    mutation in our API references.
+                  </Text>
+                </BlockStack>
+                <InlineStack gap="300">
+                  <Button loading={isLoading} onClick={generateProduct}>
+                    Generate a product
+                  </Button>
+                  {actionData?.product && (
+                    <Button
+                      url={`shopify:admin/products/${productId}`}
+                      target="_blank"
+                      variant="plain"
+                    >
+                      View product
+                    </Button>
+                  )}
+                </InlineStack>
+                {actionData?.product && (
+                  <Box
+                    padding="400"
+                    background="bg-surface-active"
+                    borderWidth="025"
+                    borderRadius="200"
+                    borderColor="border"
+                    overflowX="scroll"
+                  >
+                    <pre style={{ margin: 0 }}>
+                      <code>{JSON.stringify(actionData.product, null, 2)}</code>
+                    </pre>
+                  </Box>
+                )}
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+          <Layout.Section variant="oneThird">
+            <BlockStack gap="500">
+              <Card>
+                <BlockStack gap="200">
+                  <Text as="h2" variant="headingMd">
+                    App template specs
+                  </Text>
+                  <BlockStack gap="200">
+                    <InlineStack align="space-between">
+                      <Text as="span" variant="bodyMd">
+                        Framework
+                      </Text>
+                      <Link
+                        url="https://remix.run"
+                        target="_blank"
+                        removeUnderline
+                      >
+                        Remix
+                      </Link>
+                    </InlineStack>
+                    <InlineStack align="space-between">
+                      <Text as="span" variant="bodyMd">
+                        Database
+                      </Text>
+                      <Link
+                        url="https://www.prisma.io/"
+                        target="_blank"
+                        removeUnderline
+                      >
+                        Prisma
+                      </Link>
+                    </InlineStack>
+                    <InlineStack align="space-between">
+                      <Text as="span" variant="bodyMd">
+                        Interface
+                      </Text>
+                      <span>
+                        <Link
+                          url="https://polaris.shopify.com"
+                          target="_blank"
+                          removeUnderline
+                        >
+                          Polaris
+                        </Link>
+                        {", "}
+                        <Link
+                          url="https://shopify.dev/docs/apps/tools/app-bridge"
+                          target="_blank"
+                          removeUnderline
+                        >
+                          App Bridge
+                        </Link>
+                      </span>
+                    </InlineStack>
+                    <InlineStack align="space-between">
+                      <Text as="span" variant="bodyMd">
+                        API
+                      </Text>
+                      <Link
+                        url="https://shopify.dev/docs/api/admin-graphql"
+                        target="_blank"
+                        removeUnderline
+                      >
+                        GraphQL API
+                      </Link>
+                    </InlineStack>
+                  </BlockStack>
+                </BlockStack>
+              </Card>
+              <Card>
+                <BlockStack gap="200">
+                  <Text as="h2" variant="headingMd">
+                    Next steps
+                  </Text>
+                  <List>
+                    <List.Item>
+                      Build an{" "}
+                      <Link
+                        url="https://shopify.dev/docs/apps/getting-started/build-app-example"
+                        target="_blank"
+                        removeUnderline
+                      >
+                        {" "}
+                        example app
+                      </Link>{" "}
+                      to get started
+                    </List.Item>
+                    <List.Item>
+                      Explore Shopify’s API with{" "}
+                      <Link
+                        url="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
+                        target="_blank"
+                        removeUnderline
+                      >
+                        GraphiQL
+                      </Link>
+                    </List.Item>
+                  </List>
+                </BlockStack>
+              </Card>
+            </BlockStack>
+          </Layout.Section>
+        </Layout>
+      </BlockStack>
+    </Page>
+  );
+}
+
+// import { useCallback, useEffect, useState } from "react";
+// import { json, useLoaderData } from '@remix-run/node';
+// import {DatePicker} from '@shopify/polaris';
+// import { useActionData, useNavigation, useSubmit } from "@remix-run/react";
+// import {
+//   Page,
+//   Layout,
+//   Text,
+//   Card,
+//   Button,
+//   TextField,
+//   InlineGrid,
+//   Icon,
+//   BlockStack,
+//   Collapsible,
+//   Bleed,
+//   Divider,
+//   DataTable,
+//   Box
+// } from "@shopify/polaris";
+// import axios from 'axios';
+// import { authenticate } from "../shopify.server";
+// import { initializeApp } from 'firebase/app';
+// import { getDatabase, ref, onValue, off } from 'firebase/database';
+// import {  CustomersMajor, DropdownMinor } from '@shopify/polaris-icons';
+
+// export const loader = async ({ request }) => {
+//   await authenticate.admin(request);
+
+//   return null;
+// };
+
+// export const action = async ({ request }) => {
+//   const { admin } = await authenticate.admin(request);
+
+//   const color = ["Red", "Orange", "Yellow", "Green"][
+//     Math.floor(Math.random() * 4)
+//   ];
+//   const response = await admin.graphql(
+//     `#graphql
+//       mutation populateProduct($input: ProductInput!) {
+//         productCreate(input: $input) {
+//           product {
+//             id
+//             title
+//             handle
+//             status
+//             variants(first: 10) {
+//               edges {
+//                 node {
+//                   id
+//                   price
+//                   barcode
+//                   createdAt
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       }`,
+//     {
+//       variables: {
+//         input: {
+//           title: `${color} Snowboard`,
+//           variants: [{ price: Math.random() * 100 }],
+//         },
+//       },
+//     }
+//   );
+//   const responseJson = await response.json();
+
+//   return json({
+//     product: responseJson.data.productCreate.product,
+//   });
+// };
+
+// export default function Index() {
+//   const nav = useNavigation();
+//   const actionData = useActionData();
+//   const submit = useSubmit();
+//   const isLoading =
+//     ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
+//   const productId = actionData?.product?.id.replace(
+//     "gid://shopify/Product/",
+//     ""
+//   );
+
+//   const [value, setValue] = useState('Hi, John nice to know you');
+
+//   const handleChange = useCallback(
+//     (newValue) => setValue(newValue),
+//     [],
+//   );
+
+//   const [firebaseDB, setFirebaseDB] = useState(null);
+//   const firebaseConfig = {
+//     databaseURL: 'https://rdbex2-default-rtdb.asia-southeast1.firebasedatabase.app'
+//   };
+//   const app = initializeApp(firebaseConfig);
+//   const Firedatabase = getDatabase(app);
+
+//   useEffect(() => {
+//     const fetchDbFirebase = () => {
+//       const databaseRef = ref(Firedatabase, '/messages');
+//       onValue(databaseRef, (snapshot) => {
+//         const fetchedData = snapshot.val();
+//         setFirebaseDB(fetchedData);
+//       });
+//     };
+
+//     fetchDbFirebase();
+
+//     return () => {
+//       const databaseRef = ref(Firedatabase, '/messages');
+//       off(databaseRef);
+//     };
+//   }, []);
+//   // }
+
+//   console.log(firebaseDB);
+
+//   useEffect(() => {
+//     if (productId) {
+//       shopify.toast.show("Product created");
+//     }
+//   }, [productId]);
+//   const generateProduct = () => submit({}, { replace: true, method: "POST" });
+
+//   const [openCollapsible, setOpenCollapsible] = useState(false);
+
+//   const handleToggle = useCallback(() => setOpenCollapsible((openCollapsible) => !openCollapsible), []);
+
+//   return (
+//     <Page>
+//       <Layout>
+//       <Box padding="400">
+//         <Text variant="heading3xl" as="h2">
+//           App store dashboard
+//         </Text>
+//       </Box>
+//       <InlineGrid columns={{ xs: 1, md: "2fr 1fr" }} gap="400">
+//       <Box>
+//       <Box background="bg-surface-secondary">
+//         <Layout.Section>
+//         <Card>
+//         <InlineGrid columns={{ xs: 1, md: "20px 1fr" }} gap="100">
+//         <Icon
+//           source={CustomersMajor}
+//           tone="base"
+//         />
+//         <Text variant="headingMd" as="h6">
+//           Customer@mail
+//         </Text>
+//         </InlineGrid>
+//         <p>Use for detail pages, which should have pagination and breadcrumbs, and also often have several actions.</p>
+//         </Card>
+//         <Box>
+//         <Button
+//           css={{marginTop: "1rem",}}
+//           textAlign="left"
+//           disclosure={openCollapsible ? 'up' : 'down'}
+//           onClick={() => handleToggle(!openCollapsible)}
+//         >
+//           {openCollapsible ? 'Show less' : 'Reply'}
+//         </Button>
+//         </Box>
+//         </Layout.Section>
+//         <Collapsible
+//           open={openCollapsible}
+//           id="basic-collapsible"
+//           transition={{duration: '500ms', timingFunction: 'ease-in-out'}}
+//           expandOnPrint
+//         >
+//           <Layout.Section>
+//           <TextField
+//             label="Send Message to Customer"
+//             value={value}
+//             onChange={handleChange}
+//             multiline={4}
+//             autoComplete="off"
+//           />
+//           </Layout.Section>
+//           <Layout.Section>
+//             <Button variant="primary">Send</Button>
+//           </Layout.Section>
+//         </Collapsible>
+//       </Box>
+//       </Box>
+//       <Box>
+//         <Card roundedAbove="sm">
+//           <BlockStack gap="400">
+//             <Box border="divider" borderRadius="base" minHeight="2rem" />
+//             <Box>
+// <List type="bullet">
+//   <List.Item>Yellow shirt</List.Item>
+//   <List.Item>Red shirt</List.Item>
+//   <List.Item>Green shirt</List.Item>
+// </List>
+//               <Bleed marginInline={{ xs: 400, sm: 500 }}>
+//                 <Divider />
+//               </Bleed>
+//             </Box>
+//           </BlockStack>
+//         </Card>
+//       </Box>
+//       </InlineGrid>
+//       </Layout>
+//     </Page>
+//   );
+// }

@@ -1,0 +1,152 @@
+{{ 'comment-styles.css' | stylesheet_tag }}
+{% render 'styles' %}
+
+<div>
+  <form id="graphqlForm">
+    <div
+      class="wrap-app-container"
+      style="width: 100%;max-width: 600px;display: grid;grid-template-columns: 1fr;gap:2rem;"
+    >
+      <h2>Discussion {{ order.id }}</h2>
+      <div class="container--review">
+        <div class="Polaris-Box--user">
+          <div class="Polaris-Box--img">
+            {% for i in order.line_items %}
+              {{ i.image | image_url: width: 200 | image_tag }}
+            {% endfor %}
+          </div>
+          <div>
+            <h6 class="Polaris-Text Polaris-Text--headingMd">Customer@mail</h6>
+            <p>
+              Use for detail pages, which should have pagination and breadcrumbs, and also often have several actions.
+            </p>
+          </div>
+        </div>
+
+        <div class="">
+          <div class="Polaris-Labelled__LabelWrapper">
+            <label id="" for="textareaInput" class="Polaris-Label__Text"> Send Message to Seller </label>
+          </div>
+          <div class="Polaris-Connected">
+            <textarea 
+              class="input_textarea" 
+              id="textareaInput" 
+              rows="4" 
+              cols="50"
+              class="Polaris-TextField__Input"></textarea>
+          </div>
+        </div>
+
+        {% comment %} <button id="savedata" class="Polaris-Button" type="button">Reply</button> {% endcomment %}
+        <button class="Polaris-Button" type="button" onclick="submitForm()">Create Metaobject entry</button>
+        <button style="visibility: hidden;" class="Polaris-Button" type="submit" id="createMetaobjectDefinitionSubmit">Create Metaobject</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+  let createMetadef = document.getElementById('createMetaobjectDefinitionSubmit');
+  createMetadef.addEventListener('click', function () {
+    var myHeaders = new Headers();
+    myHeaders.append('X-Shopify-Access-Token', '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');
+    myHeaders.append('Content-Type', 'application/json');
+
+    var graphql = JSON.stringify({
+      query:
+        'mutation CreateMetaobjectDefinition($definition: MetaobjectDefinitionCreateInput!) {\n  metaobjectDefinitionCreate(definition: $definition) {\n    metaobjectDefinition {\n      name\n      type\n      fieldDefinitions {\n        name\n        key\n      }\n    }\n    userErrors {\n      field\n      message\n      code\n    }\n  }\n}\n',
+      variables: {
+        definition: {
+          name: 'comment',
+          type: 'comment',
+          fieldDefinitions: [
+            {
+              name: 'commentfield',
+              key: 'comment.commentfield',
+              type: 'single_line_text_field',
+              validations: [{ name: 'regex', value: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$' }],
+            },
+          ],
+        },
+      },
+    });
+    var requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+      body: graphql,
+      redirect: 'follow',
+    };
+
+    fetch('https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json', requestOptions)
+      .then((response) => response.text())
+      .then((result) => console.log(result))
+      .catch((error) => console.log('error', error));
+  });
+
+  function submitForm() {
+    var inputValue = document.getElementById('textareaInput').value;
+
+    var myHeaders = new Headers();
+    myHeaders.append('X-Shopify-Access-Token', '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');
+    myHeaders.append('Content-Type', 'application/json');
+    myHeaders.append('Cookie', 'request_method=POST');
+
+    var graphql = JSON.stringify({
+        query: `
+            mutation {
+                metaobjectCreate(metaobject: {
+                    type: "comment",
+                    capabilities: {
+                      publishable: {
+                        status: ACTIVE 
+                      } 
+                    },
+                    fields: [
+                        {
+                            key: "commentfield",
+                            value: "${inputValue}"
+                        }
+                    ]
+                }) {
+                    metaobject {
+                        id
+                        type
+                        fields {
+                            key
+                            value
+                        }
+                    }
+                    userErrors {
+                        field
+                        message
+                        code
+                    }
+                }
+            }`,
+        variables: {},
+    });
+
+    var requestOptions = {
+        method: 'POST',
+        headers: myHeaders,
+        body: graphql,
+        redirect: 'follow',
+    };
+
+    fetch('https://oki-playground.myshopify.com/admin/api/2023-10/graphql.json', requestOptions)
+        .then((response) => response.text())
+        .then((result) => console.log(result))
+        .catch((error) => console.log('error', error));
+}
+</script>
+
+{% schema %}
+{
+  "name": "metaobject",
+  "target": "section",
+  "settings": [
+    { "type": "product", "id": "product", "label": "product", "autofill": true },
+    { "type": "color", "id": "colour", "label": "Star Colour", "default": "#ff0000" }
+  ]
+}
+{% endschema %}
