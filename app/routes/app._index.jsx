@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { json } from "@remix-run/node";
 import { useActionData, useNavigation, useSubmit } from "@remix-run/react";
 import {
@@ -12,10 +12,19 @@ import {
   List,
   Link,
   InlineStack,
+  Icon,
+  InlineGrid,
+  TextField,
+  Collapsible,
+  Bleed,
+  Divider
 } from "@shopify/polaris";
+import {
+  CustomersMajor
+} from '@shopify/polaris-icons';
 import { authenticate } from "../shopify.server";
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { Form } from "@remix-run/react";
 
 const firebaseConfig = {
@@ -38,298 +47,197 @@ export const loader = async ({ request }) => {
   return null;
 };
 
-export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($input: ProductInput!) {
-        productCreate(input: $input) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-          }
-        }
-      }`,
-    {
-      variables: {
-        input: {
-          title: `${color} Snowboard`,
-          variants: [{ price: Math.random() * 100 }],
-        },
-      },
-    }
-  );
-  const responseJson = await response.json();
-
-  return json({
-    product: responseJson.data.productCreate.product,
-  });
-};
-
 export default function Index() {
-  const nav = useNavigation();
-  const actionData = useActionData();
-  const submit = useSubmit();
-  const isLoading =
-    ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
-  const productId = actionData?.product?.id.replace(
-    "gid://shopify/Product/",
-    ""
+  const [chatData, setChatData] = useState([]);
+
+  const [openCollapsibles, setOpenCollapsibles] = useState(Array(chatData.length).fill(true));
+
+  const handleToggle = useCallback(
+    (index) => {
+      setOpenCollapsibles((prevOpenCollapsibles) => {
+        const newOpenCollapsibles = [...prevOpenCollapsibles];
+        newOpenCollapsibles[index] = !newOpenCollapsibles[index];
+        return newOpenCollapsibles;
+      });
+    },
+    [],
   );
 
   useEffect(() => {
-    if (productId) {
-      shopify.toast.show("Product created");
-    }
-  }, [productId]);
-  const generateProduct = () => submit({}, { replace: true, method: "POST" });
+    const fetchData = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'users'));
+        const documents = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data()}));
+        setChatData(documents);
+        console.log(documents);
+      } catch (error) {
+        console.error('Error getting documents: ', error);
+      }
+    };
 
-  const [formData, setFormData] = useState({
-    content: '',
-    adminid: 'q13f2',
-  });
+    fetchData();
+  }, [db]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
+  // console.log('chatdata: ', chatData)
+  
+  const [chatFormData, setChatFormData] = useState(
+    Array.from({ length: chatData.length }, (_, index) => ({ 
+      content: "",
+      createdat: "",
+      orderid: chatData[index].id,
+      ordernumber: "",
+      orderurl: "",
+      useremail: "",
+      userid: "",
+      contents:[
+          {
+              admincontent: "",
+              createdat: "",
+              orderid: chatData[index].id
+          },
+          {
+              usercontent: "",
+              createdat: "",
+              orderid: ""
+          }
+      ]
+    }))
+  );
 
-  const postData = async () => {
+
+  const handleChatChange = useCallback(
+    (newStoreName, index) => {
+      setChatFormData((prevChatFormData) => {
+        const newFormData = [...prevChatFormData];
+        newFormData[index] = { ...newFormData[index], admincontent: newStoreName };
+        return newFormData;
+      });
+    },
+    [],
+  );
+
+  const postChatData = async (index) => {
     try {
-      const docRef = await addDoc(collection(db, 'admins'), formData);
-      console.log('Document written with ID: ', docRef.id);
+      // const docRef = await addDoc(collection(db, 'users'), chatFormData[index]);
+      // console.log('Document written with ID: ', docRef.id);
+      const documentId = chatData[index].id;
+      const docRef = doc(db, 'users', documentId);
+
+      await updateDoc(docRef, {
+        contents: arrayUnion({
+          admincontent: chatFormData[index]?.admincontent || "",
+          createdat: new Date(),
+          orderid: chatData[index].id,
+        }),
+      });
+
+      console.log('Document updated successfully.');
     } catch (error) {
       console.error('Error adding document: ', error);
     }
   };
 
   return (
-    <Page>
-      <ui-title-bar title="Remix app template">
-        <button variant="primary" onClick={generateProduct}>
-          Generate a product
-        </button>
+    <Page fullWidth>
+      <ui-title-bar title="Customer Chat">
       </ui-title-bar>
-      <BlockStack gap="500">
-        <Layout>
-          <Layout.Section>
-          <Form>
-          <label htmlFor="content">Content:</label>
-          <textarea
-            className="input_textarea"
-            type="text"
-            id="content"
-            name="content"
-            value={formData.content}
-            onChange={handleChange}
-            required
-          ></textarea>
-          <button
-            className="Polaris-Button"
-            type="button"
-            onClick={postData}
-          >
-            Submit
-          </button>
-        </Form>
-            <Card>
-              <BlockStack gap="500">
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Congrats on creating a new Shopify app 🎉
-                  </Text>
-                  <Text variant="bodyMd" as="p">
-                    This embedded app template uses{" "}
-                    <Link
-                      url="https://shopify.dev/docs/apps/tools/app-bridge"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      App Bridge
-                    </Link>{" "}
-                    interface examples like an{" "}
-                    <Link url="/app/additional" removeUnderline>
-                      additional page in the app nav
-                    </Link>
-                    , as well as an{" "}
-                    <Link
-                      url="https://shopify.dev/docs/api/admin-graphql"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      Admin GraphQL
-                    </Link>{" "}
-                    mutation demo, to provide a starting point for app
-                    development.
-                  </Text>
-                </BlockStack>
-                <BlockStack gap="200">
-                  <Text as="h3" variant="headingMd">
-                    Get started with products
-                  </Text>
-                  <Text as="p" variant="bodyMd">
-                    Generate a product with GraphQL and get the JSON output for
-                    that product. Learn more about the{" "}
-                    <Link
-                      url="https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      productCreate
-                    </Link>{" "}
-                    mutation in our API references.
-                  </Text>
-                </BlockStack>
-                <InlineStack gap="300">
-                  <Button loading={isLoading} onClick={generateProduct}>
-                    Generate a product
-                  </Button>
-                  {actionData?.product && (
-                    <Button
-                      url={`shopify:admin/products/${productId}`}
-                      target="_blank"
-                      variant="plain"
-                    >
-                      View product
-                    </Button>
+      <Layout fullWidth>
+      <BlockStack gap={500}>
+        <h2>Firestore Data</h2>
+          {chatData.map((item, index) => (
+            item.orderurl ?
+            <Card key={item.id}>
+      
+              <Box>
+                  <InlineGrid columns={{ xs: "20px 1fr", lg: "20px 1fr" }} gap="100">
+                    <Icon
+                      source={CustomersMajor}
+                      tone="base"
+                    />
+                    <Text variant="headingMd" as="h5">
+                    {item.useremail ? item.useremail  : item.orderid}
+                    </Text>
+                  </InlineGrid>
+                  <Text>Content: {item.content}</Text>
+                  <Layout.Section>
+                  <BlockStack gap="100">
+                  {item.contents && item.contents.length > 0 && (
+                      item.contents.map(content => (
+                        <Box key={content.createdat}>
+                          {content.admincontent && 
+                          <Card>
+                            <Text>
+                              Admin: {content.admincontent}
+                            </Text>
+                          </Card>
+                          }
+
+                          {content.usercontent && 
+                          <Card>
+                            <Text>
+                              User: {content.usercontent}
+                            </Text>
+                          </Card>
+                          }
+                        </Box>
+                      ))
                   )}
-                </InlineStack>
-                {actionData?.product && (
-                  <Box
-                    padding="400"
-                    background="bg-surface-active"
-                    borderWidth="025"
-                    borderRadius="200"
-                    borderColor="border"
-                    overflowX="scroll"
-                  >
-                    <pre style={{ margin: 0 }}>
-                      <code>{JSON.stringify(actionData.product, null, 2)}</code>
-                    </pre>
-                  </Box>
-                )}
-              </BlockStack>
-            </Card>
-          </Layout.Section>
-          <Layout.Section variant="oneThird">
-            <BlockStack gap="500">
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    App template specs
-                  </Text>
-                  <BlockStack gap="200">
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Framework
-                      </Text>
-                      <Link
-                        url="https://remix.run"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        Remix
-                      </Link>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Database
-                      </Text>
-                      <Link
-                        url="https://www.prisma.io/"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        Prisma
-                      </Link>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Interface
-                      </Text>
-                      <span>
-                        <Link
-                          url="https://polaris.shopify.com"
-                          target="_blank"
-                          removeUnderline
-                        >
-                          Polaris
-                        </Link>
-                        {", "}
-                        <Link
-                          url="https://shopify.dev/docs/apps/tools/app-bridge"
-                          target="_blank"
-                          removeUnderline
-                        >
-                          App Bridge
-                        </Link>
-                      </span>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        API
-                      </Text>
-                      <Link
-                        url="https://shopify.dev/docs/api/admin-graphql"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        GraphQL API
-                      </Link>
-                    </InlineStack>
                   </BlockStack>
-                </BlockStack>
-              </Card>
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Next steps
-                  </Text>
-                  <List>
-                    <List.Item>
-                      Build an{" "}
-                      <Link
-                        url="https://shopify.dev/docs/apps/getting-started/build-app-example"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        {" "}
-                        example app
-                      </Link>{" "}
-                      to get started
-                    </List.Item>
-                    <List.Item>
-                      Explore Shopify’s API with{" "}
-                      <Link
-                        url="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        GraphiQL
-                      </Link>
-                    </List.Item>
-                  </List>
-                </BlockStack>
-              </Card>
-            </BlockStack>
-          </Layout.Section>
-        </Layout>
+                  </Layout.Section>
+                <Box>
+                <Layout.Section>
+                  <Button
+                    textAlign="right"
+                    disclosure={openCollapsibles[index] ? 'up' : 'down'}
+                    onClick={() => handleToggle(index)}
+                  >
+                    {openCollapsibles[index] ? 'Reply' : 'Show Less'}
+                  </Button>
+                  </Layout.Section>
+                </Box>
+
+                <Collapsible
+                  open={openCollapsibles[index]}
+                  id={`basic-collapsible-${index}`}
+                  transition={{ duration: '500ms', timingFunction: 'ease-in-out' }}
+                  expandOnPrint
+                >
+                  <Layout.Section>
+                    <Form>
+                      <Card gap="500">
+                      <TextField
+                        label="Reply to Customer"
+                        multiline={4}
+                        autoComplete="off"
+                        className="input_textarea"
+                        type="text"
+                        id={`content-${index}`}
+                        name={`content-${index}`}
+                        value={chatFormData[index]?.admincontent || ''}
+                        onChange={(newStoreName) => handleChatChange(newStoreName, index)}
+                        required
+                      ></TextField>
+                      <Box>
+                        <button
+                          className="Polaris-Button"
+                          type="button"
+                          onClick={() => postChatData(index)}
+                        >
+                          Submit
+                        </button>
+                        </Box>
+                      </Card>
+                    </Form>
+                  </Layout.Section>
+                </Collapsible>
+              </Box>
+
+            </Card>
+            : <Text key={item.id}></Text>
+          ))}
+
       </BlockStack>
+      </Layout>
     </Page>
   );
 }

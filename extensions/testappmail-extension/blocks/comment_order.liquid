@@ -1,4 +1,4 @@
-{{ 'comment-styles.css' | stylesheet_tag }}
+{% comment %} {{ 'comment-styles.css' | asset_url | stylesheet_tag }} {% endcomment %}
 {% render 'styles' %}
 
 <div class="wrap-app-container" style="width: 100%;max-width: 600px;display: grid;grid-template-columns: 1fr;gap:2rem;">
@@ -13,12 +13,16 @@
                     {% endfor %}
                 </div>
                 <div>
-                    <h6 class="Polaris-Text Polaris-Text--headingMd">Customer@mail</h6>
-                    <p>Use for detail pages, which should have pagination and breadcrumbs, 
-                        and also often have several actions.
+                    <h3 class="Polaris-Text Polaris-Text--headingMd">{{ order.customer.email }}</h3>
+                    <p>
+                        {{ order.order_number }}
                     </p>
                 </div>
             </div>
+            <strong>
+                <p>Replys</p>
+            </strong>
+            <div id="listingContainer"></div>
             
             <div class="">
                 <div class="Polaris-Labelled__LabelWrapper">
@@ -30,7 +34,6 @@
                     <textarea class="input_textarea" id="inputTextArea" class="Polaris-TextField__Input"></textarea>
                 </div> {% endcomment %}
                 <div class="Polaris-Connected">
-                    <label for="content">Content:</label>
                     <textarea class="input_textarea" type="text" id="content" name="content" required></textarea>
                 </div>
             </div>
@@ -43,7 +46,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.3/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.6.3/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, setDoc, updateDoc, arrayUnion, doc } from "https://www.gstatic.com/firebasejs/9.6.3/firebase-firestore.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.6.3/firebase-analytics.js";
 
     const firebaseConfig = {
@@ -61,6 +64,63 @@
     const analytics = getAnalytics(app); 
     const db = getFirestore(app);
 
+    let listing = [];
+
+    const groupsCollection = collection(db, 'users');
+    const fetchData = async () => {
+        try {
+            const querySnapshot = await getDocs(groupsCollection);
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const dataID = doc.id;
+                const datacontents = data.ordernumber;
+                const userorderid = "{{ order.order_number }}";
+                if(datacontents == userorderid){
+                    listing.push(data.contents);
+                }
+            });
+        } catch (error) {
+            console.error('Error getting documents: ', error);
+        } finally{
+            const displayContainer = document.getElementById('listingContainer');
+            if (listing && listing.length > 0) {
+            console.log(listing[0].length);
+            listing[0].forEach(content => {
+                if (content.admincontent !== null && content.admincontent !== undefined && content.admincontent !== '') {
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                    <div class="reply--content">
+                        <strong>
+                            <p>Admin</p>
+                        </strong>
+                        <p class="message-container">
+                            ${content.admincontent}
+                        </p>
+                    </div>
+                    `;
+                    displayContainer.appendChild(div);
+                }
+
+                if (content.usercontent !== null && content.usercontent !== undefined && content.usercontent !== '') {
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                    <div class="reply--content">
+                        <strong>
+                            <p>You</p>
+                        </strong>
+                        <p class="message-container">
+                            ${content.usercontent}
+                        </p>
+                    </div>
+                    `;
+                    displayContainer.appendChild(div);
+                }
+                });
+            } 
+        }
+    };
+    
+
     async function postData() {
         let createdAtNow = new Date(); 
             createdAtNow.setHours(0);
@@ -75,7 +135,22 @@
         const orderNumber = "{{ order.order_number }}";
         const orderUrl = "{{ order.order_status_url }}";
 
+        const querySnapshot = await getDocs(collection(db, 'users'));
+        const existingDoc = querySnapshot.docs.find((doc) => doc.data().ordernumber === orderNumber);
+
         try {
+            if (existingDoc) {
+            const docRef = doc(db, 'users', existingDoc.id);
+            await updateDoc(docRef, {
+                contents: arrayUnion({
+                usercontent: content,
+                createdat: createdAt,
+                orderid: orderId,
+                }),
+            });
+
+            console.log("Document updated successfully.");
+            } else {
             const docRef = await addDoc(collection(db, 'users'), {
                 content: content,
                 createdat: createdAt,
@@ -83,10 +158,23 @@
                 ordernumber: orderNumber,
                 orderurl: orderUrl,
                 useremail: userEmail,
-                userid: userId
+                userid: userId,
+                contents: [
+                    {
+                        usercontent: content,
+                        createdat: createdAt,
+                        orderid: orderId,
+                    },
+                    {
+                        admincontent: "",
+                        createdat: "",
+                        orderid: "",
+                    },
+                ],
             });
 
             console.log("Document written with ID: ", docRef.id);
+            }
         } catch (error) {
             console.error("Error adding document: ", error);
         }
@@ -95,8 +183,11 @@
     document.addEventListener("DOMContentLoaded", function() {
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.addEventListener('click', postData);
+
+        fetchData();
     });
-    document.addEventListener("DOMContentLoaded", function() {
+
+    {% comment %} document.addEventListener("DOMContentLoaded", function() { {% endcomment %}
     {% comment %} console.log("mail-extension");
     const firebaseConfig = {
         databaseURL: 'https://rdbex2-default-rtdb.asia-southeast1.firebasedatabase.app'
@@ -106,7 +197,7 @@
         const response = await fetch(firebaseConfig.databaseURL + '/messages/.json');
         const res = await response.json();
         console.log(res);
-      }      
+    }      
 
     getFirebasedb();
 
@@ -144,7 +235,7 @@
             console.log('data incomplete');
         }
     }); {% endcomment %}
-    });
+    {% comment %} }); {% endcomment %}
 </script>
     
 {% schema %}

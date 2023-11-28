@@ -52,7 +52,7 @@
     
       .Polaris-Box--img{
         width: 100%;
-        max-width: 150px;
+        max-width: 90px;
       }
 
       .Polaris-Box--img img{
@@ -62,12 +62,12 @@
       }
 
       .Polaris-Box--user {
-        background-color: #FFF;
+        {% comment %} background-color: #FFF; {% endcomment %}
         padding: 1rem 2rem;
         border-radius: 5px;
-        border: 1px solid rgba(138, 138, 138, 0.5);
+        {% comment %} border: 1px solid rgba(138, 138, 138, 0.5); {% endcomment %}
         display: grid;
-        grid-template-columns: 0.5fr 1fr;
+        grid-template-columns: 0.3fr 1fr;
         {% comment %} border: 1px solid #F1F1F1; {% endcomment %}
       }
     
@@ -93,5 +93,18 @@
         max-width: 200px;
         border-radius: 5px;
         border: 1px solid rgba(138, 138, 138, 0.5);
+      }
+
+      .message-container{
+        background-color: #FFF;
+        padding: 0.5rem 2rem;
+        margin-top: 0.5rem;
+        width: 100%;
+        border-radius: 5px;
+        border: 1px solid rgba(138, 138, 138, 0.5);
+      }
+
+      .reply--content p{
+        margin-bottom: 0.5rem;
       }
 </style>
