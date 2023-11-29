@@ -1,0 +1,28 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "store-communicator"
+client_id = "c3bee6df318054233a5223acdb0aa508"
+application_url = "https://filters-gras-eric-dresses.trycloudflare.com"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products"
+
+[auth]
+redirect_urls = [
+  "https://filters-gras-eric-dresses.trycloudflare.com/auth/callback",
+  "https://filters-gras-eric-dresses.trycloudflare.com/auth/shopify/callback",
+  "https://filters-gras-eric-dresses.trycloudflare.com/api/auth/callback",
+  "https://filters-gras-eric-dresses.trycloudflare.com/.shopify/graphiql/auth/callback"
+]
+
+[webhooks]
+api_version = "2023-10"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "oki-playground.myshopify.com"
